@@ -1,5 +1,6 @@
 package org.example;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -7,16 +8,26 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 class MailDispatcherTest {
+
+    public static final int REQUESTS_COUNT = 100_000;
 
     @Test
     void given_100_000_mails__send_them_most_effectively() {
         // given
         List<String> mails = generateMailList();
-        ExecutorService executor = null;
+        ExecutorService executor = Executors.newSingleThreadExecutor();
 
         // when
-        new MailDispatcher(executor).dispatchEmails(mails, "Hello there!");
+        List<String> responses;
+        try (executor) {
+            responses = new MailDispatcher(executor).dispatchEmails(mails, "Hello there!");
+        }
+
+        // then
+        assertEquals(responses.size(), REQUESTS_COUNT);
     }
 
     @Test
@@ -26,9 +37,13 @@ class MailDispatcherTest {
         var executor = Executors.newFixedThreadPool(12);
 
         // when
+        List<String> responses;
         try (executor) {
-            new MailDispatcher(executor).dispatchEmails(mails, "Hello There!");
+            responses = new MailDispatcher(executor).dispatchEmails(mails, "Hello There!");
         }
+
+        // then
+        assertEquals(responses.size(), REQUESTS_COUNT);
     }
 
     @Test
@@ -38,21 +53,29 @@ class MailDispatcherTest {
         var executor = Executors.newCachedThreadPool();
 
         // when
+        List<String> responses;
         try (executor) {
-            new MailDispatcher(executor).dispatchEmails(mails, "Hello There!");
+            responses = new MailDispatcher(executor).dispatchEmails(mails, "Hello There!");
         }
+
+        // then
+        assertEquals(responses.size(), REQUESTS_COUNT);
     }
 
     @Test
-    void given_10_000_mails__and_virtual_threads__send_them_fast() {
+    void given_100_000_mails__and_virtual_threads__send_them_fast() {
         // given
         var mails = generateMailList();
         var executor = Executors.newVirtualThreadPerTaskExecutor();
 
         // when
+        List<String> responses;
         try (executor) {
-            new MailDispatcher(executor).dispatchEmails(mails, "Hello There!");
+            responses = new MailDispatcher(executor).dispatchEmails(mails, "Hello There!");
         }
+
+        // then
+        assertEquals(responses.size(), REQUESTS_COUNT);
     }
 
     private static List<String> generateMailList() {
